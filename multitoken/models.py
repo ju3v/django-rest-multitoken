@@ -1,4 +1,5 @@
 import binascii
+import datetime
 import os
 from django.conf import settings
 from django.db import models
@@ -16,6 +17,13 @@ class Token(models.Model):
             'client',
         )
 
+    def __unicode__(self):
+        return u'{0} (client: {1})'.format(self.key, self.client)
+
+    LOGIN_FIELDS = (
+        'client',
+    )
+
     def save(self, *args, **kwargs):
         if not self.key:
             self.key = self.generate_key()
@@ -24,9 +32,7 @@ class Token(models.Model):
     def generate_key(self):
         return binascii.hexlify(os.urandom(20)).decode()
 
-    def __unicode__(self):
-        return u'{0} (client: {1})'.format(self.key, self.client)
-
-    LOGIN_FIELDS = (
-        'client',
-    )
+    @property
+    def is_expired(self):
+        token_timeout = settings.REST_MULTITOKEN['TOKEN_TIMEOUT']
+        return self.created < datetime.datetime.utcnow() - token_timeout

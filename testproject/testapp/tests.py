@@ -1,5 +1,9 @@
+import datetime
+import freezegun
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
+from django.test import override_settings
 from djet import assertions, restframework, utils
 from rest_framework import status
 from multitoken import models, views
@@ -103,6 +107,27 @@ class LogoutViewTest(restframework.APIViewTestCase,
         create_user()
 
         request = self.factory.post()
+        response = self.view(request)
+
+        self.assert_status_equal(response, status.HTTP_401_UNAUTHORIZED)
+
+    @freezegun.freeze_time("2015-01-01")
+    @override_settings(
+        REST_MULTITOKEN={'TOKEN_TIMEOUT': datetime.timedelta(days=1)})
+    def test_post_should_not_login_user_with_expired_token(self):
+        user = create_user()
+        token = models.Token.objects.create(
+            user=user,
+            client='my-device',
+            created=datetime.datetime.utcnow() - datetime.timedelta(days=2))
+
+        data = {
+            'username': user.username,
+            'password': user.raw_password,
+            'client': 'my-device',
+        }
+        request = self.factory.post(data=data)
+
         response = self.view(request)
 
         self.assert_status_equal(response, status.HTTP_401_UNAUTHORIZED)

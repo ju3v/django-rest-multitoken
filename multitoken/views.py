@@ -14,7 +14,7 @@ class ObtainTokenView(generics.GenericAPIView):
     token_serializer_class = serializers.TokenSerializer
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.DATA)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             return self.login(serializer)
         else:
